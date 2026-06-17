@@ -109,9 +109,11 @@ All responses follow:
 
 ## Local Setup
 
+> For step-by-step setup of each external system (Neon, Render, HubSpot, Google Calendar, Notion, cron-job.org), see [`docs/guides/`](docs/guides/README.md).
+
 ### Prerequisites
 - Node.js 20.x (`>=20.0.0 <21`)
-- A Neon Postgres project (https://neon.tech, free tier)
+- A Neon Postgres project (https://neon.tech, free tier) — see [guide-neon.md](docs/guides/guide-neon.md)
 
 ### Configure
 ```bash
