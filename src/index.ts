@@ -9,6 +9,7 @@ import { startQueue, stopQueue } from './jobs/queue.js';
 import { registerSyncWorker } from './jobs/sync-job.js';
 import { registerHubspot } from './sources/hubspot/index.js';
 import { registerGoogleCalendar } from './sources/google-calendar/index.js';
+import { registerNotion } from './sources/notion/index.js';
 
 async function cleanupStaleRuns(): Promise<void> {
   try {
@@ -62,6 +63,12 @@ async function start(): Promise<void> {
     registerGoogleCalendar();
   } else {
     logger.warn('GOOGLE_* env vars missing — Google Calendar source disabled');
+  }
+
+  if (env.NOTION_API_KEY && env.NOTION_DATABASE_ID) {
+    registerNotion();
+  } else {
+    logger.warn('NOTION_* env vars missing — Notion source disabled');
   }
 
   await startQueue();

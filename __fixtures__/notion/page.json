@@ -1,0 +1,29 @@
+{
+  "object": "page",
+  "id": "abc123de-f456-7890-abcd-ef0123456789",
+  "created_time": "2026-01-15T10:00:00.000Z",
+  "last_edited_time": "2026-03-01T14:30:00.000Z",
+  "archived": false,
+  "in_trash": false,
+  "url": "https://www.notion.so/Read-Domain-Driven-Design-abc123de",
+  "parent": { "type": "database_id", "database_id": "db000000-0000-0000-0000-000000000000" },
+  "properties": {
+    "Name": {
+      "id": "title",
+      "type": "title",
+      "title": [
+        { "type": "text", "plain_text": "Read Domain-Driven Design" }
+      ]
+    },
+    "Status": {
+      "id": "status",
+      "type": "select",
+      "select": { "name": "In progress", "color": "yellow" }
+    },
+    "Priority": {
+      "id": "prio",
+      "type": "number",
+      "number": 2
+    }
+  }
+}

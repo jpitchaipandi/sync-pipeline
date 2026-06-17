@@ -1,0 +1,17 @@
+{
+  "object": "page",
+  "id": "deletedab-1234-5678-90ab-cdef12345678",
+  "created_time": "2026-02-01T00:00:00.000Z",
+  "last_edited_time": "2026-03-10T12:00:00.000Z",
+  "archived": true,
+  "in_trash": false,
+  "url": "https://www.notion.so/Old-task-deletedab",
+  "parent": { "type": "database_id", "database_id": "db000000-0000-0000-0000-000000000000" },
+  "properties": {
+    "Name": {
+      "id": "title",
+      "type": "title",
+      "title": [{ "type": "text", "plain_text": "Old task" }]
+    }
+  }
+}
