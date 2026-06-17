@@ -1,0 +1,13 @@
+{
+  "id": "12345",
+  "properties": {
+    "email": "alice@example.com",
+    "firstname": "Alice",
+    "lastname": "Example",
+    "phone": "+1-555-0100",
+    "lifecyclestage": "lead",
+    "hs_lastmodifieddate": "1709251200000"
+  },
+  "createdAt": "2026-01-15T10:00:00.000Z",
+  "updatedAt": "2026-03-01T00:00:00.000Z"
+}

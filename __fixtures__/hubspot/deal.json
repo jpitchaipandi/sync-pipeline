@@ -1,0 +1,13 @@
+{
+  "id": "55555",
+  "properties": {
+    "dealname": "Acme Deal Q1",
+    "amount": "10000.00",
+    "dealstage": "qualifiedtobuy",
+    "pipeline": "default",
+    "closedate": "1714521600000",
+    "hs_lastmodifieddate": "1709424000000"
+  },
+  "createdAt": "2026-02-01T10:00:00.000Z",
+  "updatedAt": "2026-03-03T00:00:00.000Z"
+}

@@ -24,6 +24,19 @@ describe('cursor-store', () => {
   beforeEach(async () => {
     client = await pool.connect();
     await client.query('BEGIN');
+    // Reset all sync_state rows to defaults inside the transaction so
+    // committed state from earlier real syncs doesn't leak into assertions.
+    await client.query(`
+      UPDATE sync_state
+      SET cursor = NULL,
+          last_incremental_at = NULL,
+          last_full_at = NULL,
+          needs_full_backfill = FALSE,
+          status = 'idle',
+          lock_acquired_at = NULL,
+          consecutive_failures = 0,
+          last_error = NULL
+    `);
   });
 
   afterEach(async () => {

@@ -1,0 +1,15 @@
+{
+  "id": "67890",
+  "properties": {
+    "name": "Example Industries",
+    "domain": "example.com",
+    "industry": "Software",
+    "phone": "+1-555-0200",
+    "city": "San Francisco",
+    "state": "CA",
+    "country": "US",
+    "hs_lastmodifieddate": "1709337600000"
+  },
+  "createdAt": "2026-01-20T10:00:00.000Z",
+  "updatedAt": "2026-03-02T00:00:00.000Z"
+}

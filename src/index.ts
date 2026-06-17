@@ -4,8 +4,10 @@ import { logger } from './core/logger.js';
 import { pool, closePool } from './db/client.js';
 import { healthRoutes } from './api/routes/health.js';
 import { syncRoutes } from './api/routes/sync.js';
+import { webhookRoutes } from './api/routes/webhooks.js';
 import { startQueue, stopQueue } from './jobs/queue.js';
 import { registerSyncWorker } from './jobs/sync-job.js';
+import { registerHubspot } from './sources/hubspot/index.js';
 
 async function cleanupStaleRuns(): Promise<void> {
   try {
@@ -41,12 +43,19 @@ async function buildApp() {
 
   await app.register(healthRoutes);
   await app.register(syncRoutes);
+  await app.register(webhookRoutes);
 
   return app;
 }
 
 async function start(): Promise<void> {
   await cleanupStaleRuns();
+
+  if (env.HUBSPOT_ACCESS_TOKEN) {
+    registerHubspot();
+  } else {
+    logger.warn('HUBSPOT_ACCESS_TOKEN missing — HubSpot source disabled');
+  }
 
   await startQueue();
   await registerSyncWorker();
