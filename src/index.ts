@@ -3,14 +3,17 @@ import { env } from './config/env.js';
 import { logger } from './core/logger.js';
 import { pool, closePool } from './db/client.js';
 import { healthRoutes } from './api/routes/health.js';
+import { syncRoutes } from './api/routes/sync.js';
+import { startQueue, stopQueue } from './jobs/queue.js';
+import { registerSyncWorker } from './jobs/sync-job.js';
 
 async function cleanupStaleRuns(): Promise<void> {
   try {
     await pool.query('SELECT cleanup_stale_runs()');
-    logger.info('Stale runs cleaned up');
+    logger.info('stale_runs_cleaned');
   } catch (err) {
     // Function may not exist yet on first boot if migrations have not run.
-    logger.warn({ err }, 'cleanup_stale_runs() not available — skipping');
+    logger.warn({ err }, 'cleanup_stale_runs_unavailable');
   }
 }
 
@@ -37,6 +40,7 @@ async function buildApp() {
   });
 
   await app.register(healthRoutes);
+  await app.register(syncRoutes);
 
   return app;
 }
@@ -44,19 +48,23 @@ async function buildApp() {
 async function start(): Promise<void> {
   await cleanupStaleRuns();
 
+  await startQueue();
+  await registerSyncWorker();
+
   const app = await buildApp();
 
   try {
     const address = await app.listen({ port: env.PORT, host: '0.0.0.0' });
-    logger.info({ address, env: env.NODE_ENV }, 'sync-pipeline started');
+    logger.info({ address, env: env.NODE_ENV }, 'sync_pipeline_started');
   } catch (err) {
-    logger.fatal({ err }, 'Failed to start server');
+    logger.fatal({ err }, 'failed_to_start_server');
     process.exit(1);
   }
 
   const shutdown = async (signal: string): Promise<void> => {
-    logger.info({ signal }, 'Shutting down');
+    logger.info({ signal }, 'shutting_down');
     await app.close();
+    await stopQueue();
     await closePool();
     process.exit(0);
   };
