@@ -37,23 +37,14 @@ services:
       - key: NOTION_DATABASE_ID
         sync: false
 
-  # Scheduled cron: fires every 10 minutes (under the 15-min free-tier
-  # spin-down threshold) so the web service stays warm AND each source
-  # runs an incremental sync. Calls POST /sync/all via bearer auth.
-  - type: cron
-    name: sync-pipeline-cron
-    runtime: node
-    region: oregon
-    plan: free
-    schedule: "*/10 * * * *"
-    buildCommand: npm ci && npm run build
-    startCommand: node dist/cron-runner.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: LOG_LEVEL
-        value: info
-      - key: WEB_SERVICE_URL
-        sync: false  # Set to the deployed sync-pipeline-api URL in the dashboard
-      - key: API_SECRET
-        sync: false  # Must match the value generated for sync-pipeline-api
+# Scheduled syncs are configured externally on cron-job.org (free tier
+# alternative — Render's Cron Job service requires a paid plan).
+#
+# cron-job.org setup:
+#   URL:      https://sync-pipeline-api.onrender.com/sync/all
+#   Method:   POST
+#   Schedule: every 10 minutes (under the 15-min free-tier spin-down threshold)
+#   Headers:  Authorization: Bearer <API_SECRET>
+#
+# The src/cron-runner.ts script in this repo remains useful for ad-hoc
+# invocation or other CI cron providers (GitHub Actions, Vercel cron, etc.).
