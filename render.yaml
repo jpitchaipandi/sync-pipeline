@@ -6,7 +6,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci && npm run build && npm run migrate
+    buildCommand: npm ci && npm run build && npm run migrate:prod
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
