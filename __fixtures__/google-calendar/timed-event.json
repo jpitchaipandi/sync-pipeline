@@ -1,0 +1,18 @@
+{
+  "id": "evt_abc123",
+  "iCalUID": "evt_abc123@google.com",
+  "status": "confirmed",
+  "summary": "Team standup",
+  "description": "Daily 15-min sync",
+  "location": "Zoom",
+  "start": { "dateTime": "2026-03-01T09:00:00-08:00", "timeZone": "America/Los_Angeles" },
+  "end": { "dateTime": "2026-03-01T09:15:00-08:00", "timeZone": "America/Los_Angeles" },
+  "created": "2026-02-15T10:00:00.000Z",
+  "updated": "2026-02-28T22:00:00.000Z",
+  "organizer": { "email": "alice@example.com", "displayName": "Alice" },
+  "htmlLink": "https://www.google.com/calendar/event?eid=abc",
+  "attendees": [
+    { "email": "alice@example.com", "responseStatus": "accepted", "displayName": "Alice" },
+    { "email": "bob@example.com", "responseStatus": "needsAction", "displayName": "Bob" }
+  ]
+}

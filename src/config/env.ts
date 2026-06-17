@@ -22,6 +22,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REFRESH_TOKEN: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().default('primary'),
+  GOOGLE_WEBHOOK_TOKEN: z.string().optional(),
 
   NOTION_API_KEY: z.string().optional(),
   NOTION_DATABASE_ID: z.string().optional(),

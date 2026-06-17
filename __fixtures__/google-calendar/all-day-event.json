@@ -1,0 +1,10 @@
+{
+  "id": "evt_allday_456",
+  "iCalUID": "evt_allday_456@google.com",
+  "status": "confirmed",
+  "summary": "Team offsite",
+  "start": { "date": "2026-04-15" },
+  "end": { "date": "2026-04-17" },
+  "created": "2026-03-01T10:00:00.000Z",
+  "updated": "2026-03-10T14:30:00.000Z"
+}

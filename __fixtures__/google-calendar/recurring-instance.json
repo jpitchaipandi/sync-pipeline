@@ -1,0 +1,11 @@
+{
+  "id": "evt_recurring_master_inst_20260315T090000Z",
+  "iCalUID": "evt_recurring_master@google.com",
+  "status": "confirmed",
+  "summary": "Weekly 1:1",
+  "start": { "dateTime": "2026-03-15T09:00:00-07:00", "timeZone": "America/Los_Angeles" },
+  "end": { "dateTime": "2026-03-15T09:30:00-07:00", "timeZone": "America/Los_Angeles" },
+  "recurringEventId": "evt_recurring_master",
+  "originalStartTime": { "dateTime": "2026-03-15T09:00:00-07:00", "timeZone": "America/Los_Angeles" },
+  "updated": "2026-03-14T20:00:00.000Z"
+}

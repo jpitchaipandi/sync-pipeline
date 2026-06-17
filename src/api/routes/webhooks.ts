@@ -5,6 +5,11 @@ import {
   processHubspotWebhook,
   verifyHubspotSignature,
 } from '../../sources/hubspot/webhook.js';
+import {
+  type GoogleResourceState,
+  handleNotification,
+  verifyChannelToken,
+} from '../../sources/google-calendar/webhook.js';
 
 export const webhookRoutes: FastifyPluginAsync = async (app) => {
   // HubSpot webhook receiver. ALWAYS returns 200 (or 401 on bad signature)
@@ -66,4 +71,54 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(200).send({ success: true, data: outcome });
     },
   );
+
+  // Google Calendar push notification receiver. Payload is empty; we
+  // authenticate via the static channel token we set on `watch` creation
+  // and dedup by (resourceId, messageNumber). A notification triggers an
+  // incremental sync — the actual data delta arrives via the stored syncToken.
+  app.post('/webhooks/google-calendar', async (req, reply) => {
+    const tokenHeader = req.headers['x-goog-channel-token'];
+    const resourceStateHeader = req.headers['x-goog-resource-state'];
+    const resourceIdHeader = req.headers['x-goog-resource-id'];
+    const messageNumberHeader = req.headers['x-goog-message-number'];
+
+    const provided = Array.isArray(tokenHeader) ? tokenHeader[0] : tokenHeader;
+    const resourceStateRaw = Array.isArray(resourceStateHeader)
+      ? resourceStateHeader[0]
+      : resourceStateHeader;
+    const resourceId = Array.isArray(resourceIdHeader) ? resourceIdHeader[0] : resourceIdHeader;
+    const messageNumber = Array.isArray(messageNumberHeader)
+      ? messageNumberHeader[0]
+      : messageNumberHeader;
+
+    if (!verifyChannelToken({ provided, expected: env.GOOGLE_WEBHOOK_TOKEN })) {
+      logger.warn('gcal_webhook_invalid_token');
+      return reply
+        .code(401)
+        .send({ success: false, error: { code: 'INVALID_TOKEN', message: 'channel token mismatch' } });
+    }
+
+    if (!resourceStateRaw || !resourceId || !messageNumber) {
+      return reply.code(400).send({
+        success: false,
+        error: { code: 'MISSING_HEADERS', message: 'required X-Goog-* headers absent' },
+      });
+    }
+
+    const VALID_STATES: GoogleResourceState[] = ['sync', 'exists', 'not_exists'];
+    if (!VALID_STATES.includes(resourceStateRaw as GoogleResourceState)) {
+      return reply.code(400).send({
+        success: false,
+        error: { code: 'UNKNOWN_RESOURCE_STATE', message: resourceStateRaw },
+      });
+    }
+
+    const outcome = await handleNotification({
+      resourceState: resourceStateRaw as GoogleResourceState,
+      resourceId,
+      messageNumber,
+    });
+
+    return reply.code(200).send({ success: true, data: outcome });
+  });
 };

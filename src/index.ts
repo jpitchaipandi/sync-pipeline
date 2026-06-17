@@ -8,6 +8,7 @@ import { webhookRoutes } from './api/routes/webhooks.js';
 import { startQueue, stopQueue } from './jobs/queue.js';
 import { registerSyncWorker } from './jobs/sync-job.js';
 import { registerHubspot } from './sources/hubspot/index.js';
+import { registerGoogleCalendar } from './sources/google-calendar/index.js';
 
 async function cleanupStaleRuns(): Promise<void> {
   try {
@@ -55,6 +56,12 @@ async function start(): Promise<void> {
     registerHubspot();
   } else {
     logger.warn('HUBSPOT_ACCESS_TOKEN missing — HubSpot source disabled');
+  }
+
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REFRESH_TOKEN) {
+    registerGoogleCalendar();
+  } else {
+    logger.warn('GOOGLE_* env vars missing — Google Calendar source disabled');
   }
 
   await startQueue();
