@@ -5,6 +5,7 @@ import { pool, closePool } from './db/client.js';
 import { healthRoutes } from './api/routes/health.js';
 import { syncRoutes } from './api/routes/sync.js';
 import { webhookRoutes } from './api/routes/webhooks.js';
+import { recordsRoutes } from './api/routes/records.js';
 import { startQueue, stopQueue } from './jobs/queue.js';
 import { registerSyncWorker } from './jobs/sync-job.js';
 import { registerHubspot } from './sources/hubspot/index.js';
@@ -46,6 +47,7 @@ async function buildApp() {
   await app.register(healthRoutes);
   await app.register(syncRoutes);
   await app.register(webhookRoutes);
+  await app.register(recordsRoutes);
 
   return app;
 }

@@ -1,5 +1,4 @@
 # Render Blueprint for sync-pipeline.
-# Cron jobs are added in Phase 6.
 services:
   - type: web
     name: sync-pipeline-api
@@ -37,3 +36,24 @@ services:
         sync: false
       - key: NOTION_DATABASE_ID
         sync: false
+
+  # Scheduled cron: fires every 10 minutes (under the 15-min free-tier
+  # spin-down threshold) so the web service stays warm AND each source
+  # runs an incremental sync. Calls POST /sync/all via bearer auth.
+  - type: cron
+    name: sync-pipeline-cron
+    runtime: node
+    region: oregon
+    plan: free
+    schedule: "*/10 * * * *"
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/cron-runner.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: WEB_SERVICE_URL
+        sync: false  # Set to the deployed sync-pipeline-api URL in the dashboard
+      - key: API_SECRET
+        sync: false  # Must match the value generated for sync-pipeline-api
