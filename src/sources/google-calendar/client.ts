@@ -35,8 +35,10 @@ export interface ListResult {
 /**
  * Iterate events from Google Calendar, paginating internally.
  *
- * - `syncToken` mode: incremental. Throws CursorExpiredError on HTTP 410
- *   so the orchestrator can flip needs_full_backfill.
+ * - `syncToken` mode: incremental. Throws CursorExpiredError on either
+ *   HTTP 410 (documented expired-token response) OR HTTP 400 with the
+ *   message "Invalid sync token value." (Google's response to a
+ *   malformed token — not documented but observed in practice).
  * - `null` syncToken: full sync. Captures the final `nextSyncToken` to
  *   persist as the new cursor.
  *
@@ -71,10 +73,27 @@ export function listEvents(args: { syncToken: string | null; signal?: AbortSigna
         response = await cal.events.list(params);
       } catch (err) {
         const status = extractStatus(err);
-        if (status === 410) {
-          throw new CursorExpiredError('google-calendar', { syncToken: args.syncToken });
+        const message = extractMessage(err);
+        // Google signals an invalid syncToken two different ways depending
+        // on what's wrong with it:
+        //   - 410 Gone: well-formed token, server has invalidated it (TTL
+        //     elapsed, ACL changed). Documented.
+        //   - 400 Bad Request "Invalid sync token value.": token is
+        //     malformed (random string, corrupted character, truncated).
+        //     Empirically observed; not as documented but very real.
+        // Both mean the same thing for our state machine: the cursor is
+        // unusable, fall back to a full backfill.
+        const isInvalidSyncToken =
+          status === 410 ||
+          (status === 400 && /sync.?token/i.test(message));
+        if (isInvalidSyncToken) {
+          throw new CursorExpiredError('google-calendar', {
+            syncToken: args.syncToken,
+            status,
+            message,
+          });
         }
-        throw new SourceApiError('google-calendar', status, extractMessage(err));
+        throw new SourceApiError('google-calendar', status, message);
       }
 
       const data = response.data;
