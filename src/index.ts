@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import { env } from './config/env.js';
 import { logger } from './core/logger.js';
 import { pool, closePool } from './db/client.js';
@@ -25,7 +25,7 @@ async function buildApp() {
     logger.debug({ method: req.method, url: req.url }, 'request');
   });
 
-  app.setErrorHandler((err, req, reply) => {
+  app.setErrorHandler((err: FastifyError, req, reply) => {
     logger.error({ err, url: req.url }, 'request_error');
     reply.code(err.statusCode ?? 500).send({
       success: false,
