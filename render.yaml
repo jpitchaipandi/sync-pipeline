@@ -1,0 +1,39 @@
+# Render Blueprint for sync-pipeline.
+# Cron jobs are added in Phase 6.
+services:
+  - type: web
+    name: sync-pipeline-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm ci && npm run build && npm run migrate
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_DIRECT
+        sync: false
+      - key: API_SECRET
+        generateValue: true
+      - key: HUBSPOT_ACCESS_TOKEN
+        sync: false
+      - key: HUBSPOT_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_CALENDAR_ID
+        value: primary
+      - key: NOTION_API_KEY
+        sync: false
+      - key: NOTION_DATABASE_ID
+        sync: false
