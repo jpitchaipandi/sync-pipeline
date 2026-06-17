@@ -48,11 +48,20 @@ All writes go through `upsertRecord`. The SQL `ON CONFLICT ... WHERE records.pay
 
 ### Stale cursor recovery
 
-Each source's `sync.ts` throws `CursorExpiredError` (defined in `src/core/errors.ts`) when the source rejects its cursor (HubSpot 400 `INVALID_PAGINATION_TOKEN`, Google Calendar 410 `GONE`, Notion analogues). The orchestrator catches it, calls `cursorStore.markNeedsFullBackfill`, and the backfill scheduler (`src/core/backfill-scheduler.ts`) fires a `full` sync on the next cycle. The skip-if-unchanged upsert covers the overlap window without double-counting. Do not "fix" `CursorExpiredError` by retrying inside the source — it must propagate to the orchestrator.
+Each source's `sync.ts` throws `CursorExpiredError` (defined in `src/core/errors.ts`) when the source rejects its cursor (HubSpot 400 `INVALID_PAGINATION_TOKEN`, Google Calendar 410 `GONE`, Notion analogues). The orchestrator catches it and calls `cursorStore.markNeedsFullBackfill`, which sets `sync_state.needs_full_backfill = TRUE` and nulls the cursor. The skip-if-unchanged upsert covers the overlap window without double-counting. Do not "fix" `CursorExpiredError` by retrying inside the source — it must propagate to the orchestrator.
 
-### Failure isolation
+`src/core/backfill-scheduler.ts` exports `scheduleBackfills()` which reads the `needs_full_backfill` flag and enqueues `full` jobs, **but it is not currently called from anywhere** (no `grep` hits outside its own file). Recovery from a flagged source is therefore manual today: `POST /sync/:source?mode=full`. If you wire up automatic recovery, the natural place is at the start of each cron tick (before the `/sync/all` enqueue) or inside the worker on a dedicated schedule.
 
-The `/sync/all` route iterates sources sequentially, each inside its own try/catch with its own resilience policy (see below). A failed source updates only its own `sync_state` row; the others run to completion. The response shape always returns `success: true` with per-source statuses inside `data.results`. Do not collapse this into a top-level failure on any single source erroring.
+### Trigger → queue → worker → orchestrator flow
+
+This is the path a sync actually takes; reading the route alone is misleading.
+
+1. `POST /sync/all` (or `/sync/:source`) in `src/api/routes/sync.ts` calls `enqueueSync` once per source — `/sync/all` does this **in parallel** via `Promise.all`, then returns 202 with just `{ source, jobId, queued }` per source. The route itself does **not** wait for sync results.
+2. `enqueueSync` (`src/jobs/sync-job.ts`) uses pg-boss `singletonKey: "<source>:<mode>"` — at most one job per (source, mode) is active at a time, so cron + webhook + manual triggers all collapse to a single in-flight run. When a singleton blocks the enqueue, `enqueueSync` returns `null` and the route returns 409 `SYNC_ALREADY_RUNNING`.
+3. The worker registered by `registerSyncWorker` (same file) consumes jobs and calls `runSource` per job.
+4. **Failure isolation lives inside `runSource`**, not at the route. Each call has its own try/catch and its own Cockatiel policy; a thrown error updates only that source's `sync_state` row and returns a failed `RunSourceOutcome`. Other sources' jobs are unaffected.
+
+The README's pretty per-source `records_upserted` JSON shows orchestrator output, not what `/sync/all` returns today — don't update the route to match the README without an explicit ask.
 
 ### Resilience (read `src/core/resilience.ts`)
 
@@ -64,11 +73,22 @@ The `/sync/all` route iterates sources sequentially, each inside its own try/cat
 
 ### Job queue
 
-`src/jobs/queue.ts` (pg-boss) and `src/jobs/sync-job.ts` provide a Postgres-native worker. The `/sync/all` route enqueues jobs that the same process consumes (single-instance Render free tier). pg-boss creates its own `pgboss.*` schema on first start — do not version-control migrations for it.
+`src/jobs/queue.ts` (pg-boss) and `src/jobs/sync-job.ts` provide a Postgres-native worker. The `/sync/all` route enqueues jobs that the same process consumes (single-instance Render free tier). pg-boss creates its own `pgboss.*` schema on first start — do not version-control migrations for it. The `singletonKey` discussed above is how at-most-one-active enforcement is achieved; if you ever introduce per-tenant or per-entity sub-syncs, the singleton key has to incorporate the new dimension or distinct work will silently collapse into one job.
 
 ### Cron entry point
 
 `src/cron-runner.ts` is a **separate, standalone** entry point that does NOT import the web service's DB client, queue, or orchestrator. It only does `fetch(...)` against the deployed web service. This separation matters: it lets the cron job run on a different process/plan from the web service. Do not collapse it into the main service.
+
+The **production deployment does not actually run this script** — Render's free tier doesn't include cron, so scheduling is done externally on cron-job.org with a `POST /sync/all` + `Authorization: Bearer <API_SECRET>` (see `render.yaml` comment block). `cron-runner.ts` is kept around for ad-hoc invocation and other CI providers (GitHub Actions, Vercel cron, paid Render plan, etc.). When updating the production schedule, change cron-job.org — not anything in this repo.
+
+### Webhooks (`src/api/routes/webhooks.ts`)
+
+Two non-obvious rules live here:
+
+- **HubSpot endpoint never returns 5xx.** Only 200 (processed or queued) or 401 (signature mismatch). HubSpot disables endpoints that return server errors, so processing failures are logged but the response is still 200. Preserve this contract — wrap new logic in try/catch and surface failures through logs and `sync_runs`, not HTTP status.
+- **HubSpot HMAC v3 is verified against a re-stringified body, not the raw bytes.** Fastify parses JSON into `req.body` by default; the route calls `JSON.stringify(req.body)` and feeds that into the signature check. The inline code comment notes this only works because HubSpot sends compact JSON without whitespace — if a future verification mismatch appears, switch to `fastify-raw-body` and verify against the original bytes instead of patching the canonicalization.
+
+Google Calendar push notifications carry no payload — the route only verifies the static `X-Goog-Channel-Token`, dedups by `(resourceId, messageNumber)`, and enqueues an incremental sync. The actual data delta arrives via the stored `syncToken` on the next fetch.
 
 ### Auth
 
